@@ -180,3 +180,6 @@ social-insecurity.code-workspace
 # SQLite database
 *.sqlite
 *.db
+
+# Random
+.dccache

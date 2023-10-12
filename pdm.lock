@@ -6,7 +6,7 @@ groups = ["default", "dev"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:ced1f46e7261bafcda5c8dcda63c8da66661b68d221d6f2418701d89b1ba5be2"
+content_hash = "sha256:eb1745e906c95bddfc2ea115a2707254a2312c32c500e05a5c61819cd4da920e"
 
 [[package]]
 name = "black"
@@ -186,6 +186,20 @@ dependencies = [
 files = [
     {file = "Flask-2.3.2-py3-none-any.whl", hash = "sha256:77fd4e1249d8c9923de34907236b747ced06e5467ecac1a7bb7115ae0e9670b0"},
     {file = "Flask-2.3.2.tar.gz", hash = "sha256:8c2f9abd47a9e8df7f0c3f091ce9497d011dc3b31effcf4c85a6e2b50f4114ef"},
+]
+
+[[package]]
+name = "flask-login"
+version = "0.6.2"
+requires_python = ">=3.7"
+summary = "User authentication and session management for Flask."
+dependencies = [
+    "Flask>=1.0.4",
+    "Werkzeug>=1.0.1",
+]
+files = [
+    {file = "Flask-Login-0.6.2.tar.gz", hash = "sha256:c0a7baa9fdc448cdd3dd6f0939df72eec5177b2f7abe6cb82fc934d29caac9c3"},
+    {file = "Flask_Login-0.6.2-py3-none-any.whl", hash = "sha256:1ef79843f5eddd0f143c2cd994c1b05ac83c0401dc6234c143495af9a939613f"},
 ]
 
 [[package]]

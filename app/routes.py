@@ -6,11 +6,49 @@ It also contains the SQL queries used for communicating with the database.
 
 from pathlib import Path
 
-from flask import flash, redirect, render_template, send_from_directory, url_for
+from flask import flash, redirect, render_template, send_from_directory, url_for, abort, session
+from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 
 from app import app, sqlite
 from app.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+
+class User(UserMixin):
+    """
+    Provides the User class for the application.
+    This class is used by the flask_login package to manage user sessions.
+    """
+
+    def __init__(self, user_id):
+        self.id = user_id
+
+    @staticmethod
+    def get(user_id):
+        """Returns a User object based on the user id."""
+        userid = sqlite.query_userid(user_id)
+        return User(userid)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    """Redirects the user to the index page if they are not logged in."""
+    flash("You must be logged in to view this page!", category="warning")
+    return redirect(url_for("index"))
+
+def check_username_password(username: str, password: str) -> bool:
+    """Login helper function"""
+    user = sqlite.query_username(username)
+    if not user:
+        return False
+    if username == user["username"] and password == user["password"]:
+        return login_user(User(user["id"]))
+    return False
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
@@ -27,19 +65,12 @@ def index():
     register_form = index_form.register
 
     if login_form.is_submitted() and login_form.submit.data:
-        get_user = f"""
-            SELECT *
-            FROM Users
-            WHERE username = '{login_form.username.data}';
-            """
-        user = sqlite.query(get_user, one=True)
-
-        if user is None:
-            flash("Sorry, this user does not exist!", category="warning")
-        elif user["password"] != login_form.password.data:
-            flash("Sorry, wrong password!", category="warning")
-        elif user["password"] == login_form.password.data:
+        # Try to log in the user
+        if check_username_password(login_form.username.data, login_form.password.data):
+            flash("You have been logged in!", category="success")
             return redirect(url_for("stream", username=login_form.username.data))
+        else:
+            flash("Invalid username or password!", category="warning")
 
     elif register_form.is_submitted() and register_form.submit.data:
         insert_user = f"""
@@ -52,8 +83,8 @@ def index():
 
     return render_template("index.html.j2", title="Welcome", form=index_form)
 
-
 @app.route("/stream/<string:username>", methods=["GET", "POST"])
+@login_required
 def stream(username: str):
     """Provides the stream page for the application.
 
@@ -90,8 +121,8 @@ def stream(username: str):
     posts = sqlite.query(get_posts)
     return render_template("stream.html.j2", title="Stream", username=username, form=post_form, posts=posts)
 
-
 @app.route("/comments/<string:username>/<int:post_id>", methods=["GET", "POST"])
+@login_required
 def comments(username: str, post_id: int):
     """Provides the comments page for the application.
 
@@ -131,8 +162,16 @@ def comments(username: str, post_id: int):
         "comments.html.j2", title="Comments", username=username, form=comments_form, post=post, comments=comments
     )
 
+@app.route("/logout")
+@login_required
+def logout():
+    """Logs the user out and redirects them to the index page."""
+    logout_user()
+    flash("You have been logged out!", category="success")
+    return redirect(url_for("index"))
 
 @app.route("/friends/<string:username>", methods=["GET", "POST"])
+@login_required
 def friends(username: str):
     """Provides the friends page for the application.
 
@@ -184,8 +223,8 @@ def friends(username: str):
     friends = sqlite.query(get_friends)
     return render_template("friends.html.j2", title="Friends", username=username, friends=friends, form=friends_form)
 
-
 @app.route("/profile/<string:username>", methods=["GET", "POST"])
+@login_required
 def profile(username: str):
     """Provides the profile page for the application.
 
@@ -214,8 +253,8 @@ def profile(username: str):
 
     return render_template("profile.html.j2", title="Profile", username=username, user=user, form=profile_form)
 
-
 @app.route("/uploads/<string:filename>")
+@login_required
 def uploads(filename):
     """Provides an endpoint for serving uploaded files."""
     return send_from_directory(Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"], filename)

@@ -124,7 +124,34 @@ class SQLite3:
         self.connection.commit()
         return response
 
-    # TODO: Add more specific query methods to simplify code
+    def query_userid(self, userid) -> int | None:
+        """Fetch userid from the database."""
+        cursor = self.connection.execute(
+            "SELECT id FROM Users WHERE id = ?", (userid,)
+            )
+        userid = cursor.fetchone()
+        cursor.close()
+        return userid
+    
+    def query_user(self, userid) -> dict | None:
+        """Fetch user from the database."""
+        cursor = self.connection.execute(
+            "SELECT * FROM Users WHERE id = ?", (userid,)
+            )
+        user = cursor.fetchone()
+        cursor.close()
+        return user
+    
+    def query_username(self, username) -> dict | None:
+        """Fetch user from the database."""
+        cursor = self.connection.execute(
+            "SELECT id, username, password FROM Users WHERE username = ?", (username,)
+            )
+        user = cursor.fetchone()
+        cursor.close()
+        if user:
+            user = dict(user)
+        return user
 
     def _init_database(self, schema: PathLike | str) -> None:
         """Initializes the database with the supplied schema if it does not exist yet."""
