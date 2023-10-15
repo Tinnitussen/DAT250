@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS [Users];
 
 CREATE TABLE [Users] (
   id INTEGER PRIMARY KEY,
-  username VARCHAR,
+  username VARCHAR UNIQUE,
   first_name VARCHAR,
   last_name VARCHAR,
   [password] VARCHAR,

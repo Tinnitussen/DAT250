@@ -136,14 +136,14 @@ class SQLite3:
         return userid
     
     def query_userprofile(self, username: str) -> dict | None:
-        """Fetch user from the database."""
+        """Fetch userprofile data from the database."""
         cursor = self.connection.execute(
             "SELECT id, first_name, last_name, education, employment, music, movie, nationality, birthday FROM Users WHERE username = ?", (username,)
             )
         user = cursor.fetchone()
         if user:
             user = {
-                'id': user[0],
+                'id': str(user[0]),
                 'first_name': user[1],
                 'last_name': user[2],
                 'education': user[3],
@@ -162,14 +162,33 @@ class SQLite3:
             "SELECT id, username, password FROM Users WHERE username = ?", (username,)
             )
         user = cursor.fetchone()
-        cursor.close()
         if user:
             user = {
-                'id': user[0],
+                'id': str(user[0]),
                 'username': user[1],
                 'password': user[2],
             }
+        cursor.close()
         return user
+
+    def check_user_exists(self, username) -> bool:
+        cursor = self.connection.execute(
+            "SELECT id FROM Users WHERE username = ?", (username,)
+            )
+        user = cursor.fetchone()
+        if user:
+            return True
+        return False
+    
+    def insert_user(self, user:dict) -> None:
+        """Insert user into the database."""
+        cursor = self.connection.execute(
+            "INSERT INTO Users (username, password, first_name, last_name) VALUES (?, ?, ?, ?)",
+             (user.get('username'), user.get('password'), user.get('first_name'), user.get('last_name'))
+            )
+        print(cursor.rowcount)
+        self.connection.commit()
+        self.connection.close()
 
     def _init_database(self, schema: PathLike | str) -> None:
         """Initializes the database with the supplied schema if it does not exist yet."""

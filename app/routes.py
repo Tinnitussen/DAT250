@@ -39,12 +39,18 @@ def index():
             flash("Invalid username or password!", category="warning")
 
     elif register_form.validate_on_submit():
-        insert_user = f"""
-            INSERT INTO Users (username, first_name, last_name, password)
-            VALUES ('{register_form.username.data}', '{register_form.first_name.data}', '{register_form.last_name.data}', '{register_form.password.data}');
-            """
-        sqlite.query(insert_user)
+        # Check if user exists
+        user = {
+            'username': register_form.username.data,
+            'password': register_form.password.data,
+            'first_name': register_form.first_name.data,
+            'last_name': register_form.last_name.data,
+        }
+        if sqlite.check_user_exists(user.get('username')):
+            flash("User already exists!", category="warning")
+            return redirect(url_for("index"))
         flash("User successfully created!", category="success")
+        sqlite.insert_user(user)
         return redirect(url_for("index"))
 
     return render_template("index.html.j2", title="Welcome", form=index_form)
@@ -59,14 +65,17 @@ def stream(username: str):
     Otherwise, it reads the username from the URL and displays all posts from the user and their friends.
     """
     post_form = PostForm()
-    get_user = f"""
-        SELECT *
-        FROM Users
-        WHERE username = '{username}';
-        """
-    user = sqlite.query(get_user, one=True)
-
+    user = sqlite.query_username(username)
+    print(user.get("id"))
+    print(current_user.get_id())
+    print(current_user.get_id() == user.get("id"))
+    if not user.get("id") or not current_user.get_id():
+        flash("User does not exist!", category="warning")
+        return redirect(url_for("stream", username=username))
     if post_form.validate_on_submit():
+        if current_user.get_id() != user.get("id"):
+            flash ("You cannot post as another user!", category="warning")
+            return redirect(url_for("stream", username=username))
         if post_form.image.data and allowed_file(post_form.image.data.filename):
             filename = secure_filename(post_form.image.data.filename)
             path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / filename 
@@ -100,14 +109,11 @@ def comments(username: str, post_id: int):
     Otherwise, it reads the username and post id from the URL and displays all comments for the post.
     """
     comments_form = CommentsForm()
-    get_user = f"""
-        SELECT *
-        FROM Users
-        WHERE username = '{username}';
-        """
-    user = sqlite.query(get_user, one=True)
-
+    user = sqlite.query_username(username)
     if comments_form.validate_on_submit():
+        if not current_user.get_id() == user.get("id"):
+            flash("You cannot comment as another user!", category="warning")
+            return redirect(url_for("comments", username=username, post_id=post_id))
         insert_comment = f"""
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
             VALUES ({post_id}, {user["id"]}, '{comments_form.comment.data}', CURRENT_TIMESTAMP);
@@ -203,12 +209,14 @@ def profile(username: str):
     """
     profile_form = ProfileForm()
     user = sqlite.query_userprofile(username)
-    if not user.get("id"):
+    if not user.get("id") or not current_user.get_id():
         flash("User does not exist!", category="warning")
         return redirect(url_for("profile", username=username))
     if profile_form.validate_on_submit():
         # Check if the current user is the same as the user whose profile is being updated
-        if current_user.id != int(user.get("id", 0)):
+        print(current_user.get_id())
+        print(user.get("id"))
+        if current_user.get_id() != user.get("id"):
             flash("You cannot update another user's profile!", category="warning")
             return redirect(url_for("profile", username=username))
         update_profile = f"""
