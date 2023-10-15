@@ -183,3 +183,4 @@ social-insecurity.code-workspace
 
 # Random
 .dccache
+.env.local

@@ -29,7 +29,13 @@ from wtforms import (
     SubmitField,
     TextAreaField,
 )
+from wtforms.validators import (
+    DataRequired,
+    EqualTo,
+    Length,
+    Optional,
 
+)
 # Defines all forms in the application, these will be instantiated by the template,
 # and the routes.py will read the values of the fields
 
@@ -41,23 +47,23 @@ from wtforms import (
 class LoginForm(FlaskForm):
     """Provides the login form for the application."""
 
-    username = StringField(label="Username", render_kw={"placeholder": "Username"})
-    password = PasswordField(label="Password", render_kw={"placeholder": "Password"})
+    username = StringField(label="Username", render_kw={"placeholder": "Username"}, validators=[DataRequired(), Length(1, 64)]) 
+    password = PasswordField(label="Password", render_kw={"placeholder": "Password"}, validators=[DataRequired(), Length(8, 99)])
     remember_me = BooleanField(
         label="Remember me"
     )  # TODO: It would be nice to have this feature implemented, probably by using cookies
-    submit = SubmitField(label="Sign In")
+    submit = SubmitField(label="Sign In", validators=[DataRequired()])
 
 
 class RegisterForm(FlaskForm):
     """Provides the registration form for the application."""
 
-    first_name = StringField(label="First Name", render_kw={"placeholder": "First Name"})
-    last_name = StringField(label="Last Name", render_kw={"placeholder": "Last Name"})
-    username = StringField(label="Username", render_kw={"placeholder": "Username"})
-    password = PasswordField(label="Password", render_kw={"placeholder": "Password"})
-    confirm_password = PasswordField(label="Confirm Password", render_kw={"placeholder": "Confirm Password"})
-    submit = SubmitField(label="Sign Up")
+    first_name = StringField(label="First Name", render_kw={"placeholder": "First Name"}, validators=[Optional(), Length(1, 64)])
+    last_name = StringField(label="Last Name", render_kw={"placeholder": "Last Name"}, validators=[Optional(), Length(1, 64)])
+    username = StringField(label="Username", render_kw={"placeholder": "Username"}, validators=[Length(1, 64), DataRequired()])
+    password = PasswordField(label="Password", render_kw={"placeholder": "Password"}, validators=[Length(8, 99), DataRequired(), EqualTo("confirm_password")])
+    confirm_password = PasswordField(label="Confirm Password", render_kw={"placeholder": "Confirm Password"}, validators=[DataRequired()])
+    submit = SubmitField(label="Sign Up", validators=[DataRequired()])
 
 
 class IndexForm(FlaskForm):
@@ -70,32 +76,32 @@ class IndexForm(FlaskForm):
 class PostForm(FlaskForm):
     """Provides the post form for the application."""
 
-    content = TextAreaField(label="New Post", render_kw={"placeholder": "What are you thinking about?"})
-    image = FileField(label="Image")
-    submit = SubmitField(label="Post")
+    content = TextAreaField(label="New Post", render_kw={"placeholder": "What are you thinking about?"}, validators=[Length(1,500), DataRequired()])
+    image = FileField(label="Image", validators=[Optional()])
+    submit = SubmitField(label="Post", validators=[DataRequired()])
 
 
 class CommentsForm(FlaskForm):
     """Provides the comment form for the application."""
 
-    comment = TextAreaField(label="New Comment", render_kw={"placeholder": "What do you have to say?"})
-    submit = SubmitField(label="Comment")
+    comment = TextAreaField(label="New Comment", render_kw={"placeholder": "What do you have to say?"}, validators=[Length(1, 500), DataRequired()])
+    submit = SubmitField(label="Comment", validators=[DataRequired()])
 
 
 class FriendsForm(FlaskForm):
     """Provides the friend form for the application."""
 
-    username = StringField(label="Friend's username", render_kw={"placeholder": "Username"})
-    submit = SubmitField(label="Add Friend")
+    username = StringField(label="Friend's username", render_kw={"placeholder": "Username"}, validators=[Length(1, 64), DataRequired()])
+    submit = SubmitField(label="Add Friend", validators=[DataRequired()])
 
 
 class ProfileForm(FlaskForm):
     """Provides the profile form for the application."""
 
-    education = StringField(label="Education", render_kw={"placeholder": "Highest education"})
-    employment = StringField(label="Employment", render_kw={"placeholder": "Current employment"})
-    music = StringField(label="Favorite song", render_kw={"placeholder": "Favorite song"})
-    movie = StringField(label="Favorite movie", render_kw={"placeholder": "Favorite movie"})
-    nationality = StringField(label="Nationality", render_kw={"placeholder": "Your nationality"})
-    birthday = DateField(label="Birthday", default=datetime.now())
-    submit = SubmitField(label="Update Profile")
+    education = StringField(label="Education", render_kw={"placeholder": "Highest education"}, validators=[Optional(), Length(1, 64)])
+    employment = StringField(label="Employment", render_kw={"placeholder": "Current employment"}, validators=[Optional(), Length(1, 64)])
+    music = StringField(label="Favorite song", render_kw={"placeholder": "Favorite song"}, validators=[Optional(), Length(1, 64)])
+    movie = StringField(label="Favorite movie", render_kw={"placeholder": "Favorite movie"}, validators=[Optional(), Length(1, 64)])
+    nationality = StringField(label="Nationality", render_kw={"placeholder": "Your nationality"}, validators=[Optional(), Length(1, 64)])
+    birthday = DateField(label="Birthday", default=datetime.now(), validators=[Optional()])
+    submit = SubmitField(label="Update Profile", validators=[DataRequired()])

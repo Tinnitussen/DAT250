@@ -7,48 +7,13 @@ It also contains the SQL queries used for communicating with the database.
 from pathlib import Path
 
 from flask import flash, redirect, render_template, send_from_directory, url_for, abort, session
-from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
+from flask_login import login_required, logout_user, current_user
 
-from app import app, sqlite
+from app import app, sqlite, check_username_password, allowed_file
 from app.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
-
-login_manager = LoginManager()
-login_manager.init_app(app)
+from werkzeug.utils import secure_filename
 
 
-class User(UserMixin):
-    """
-    Provides the User class for the application.
-    This class is used by the flask_login package to manage user sessions.
-    """
-
-    def __init__(self, user_id):
-        self.id = user_id
-
-    @staticmethod
-    def get(user_id):
-        """Returns a User object based on the user id."""
-        userid = sqlite.query_userid(user_id)
-        return User(userid)
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.get(user_id)
-
-@login_manager.unauthorized_handler
-def unauthorized():
-    """Redirects the user to the index page if they are not logged in."""
-    flash("You must be logged in to view this page!", category="warning")
-    return redirect(url_for("index"))
-
-def check_username_password(username: str, password: str) -> bool:
-    """Login helper function"""
-    user = sqlite.query_username(username)
-    if not user:
-        return False
-    if username == user["username"] and password == user["password"]:
-        return login_user(User(user["id"]))
-    return False
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/index", methods=["GET", "POST"])
@@ -63,16 +28,17 @@ def index():
     index_form = IndexForm()
     login_form = index_form.login
     register_form = index_form.register
-
-    if login_form.is_submitted() and login_form.submit.data:
+    if login_form.validate_on_submit():
         # Try to log in the user
+        print(login_form.username.data)
+        print(login_form.password.data)
         if check_username_password(login_form.username.data, login_form.password.data):
             flash("You have been logged in!", category="success")
             return redirect(url_for("stream", username=login_form.username.data))
         else:
             flash("Invalid username or password!", category="warning")
 
-    elif register_form.is_submitted() and register_form.submit.data:
+    elif register_form.validate_on_submit():
         insert_user = f"""
             INSERT INTO Users (username, first_name, last_name, password)
             VALUES ('{register_form.username.data}', '{register_form.first_name.data}', '{register_form.last_name.data}', '{register_form.password.data}');
@@ -100,11 +66,14 @@ def stream(username: str):
         """
     user = sqlite.query(get_user, one=True)
 
-    if post_form.is_submitted():
-        if post_form.image.data:
-            path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / post_form.image.data.filename
+    if post_form.validate_on_submit():
+        if post_form.image.data and allowed_file(post_form.image.data.filename):
+            filename = secure_filename(post_form.image.data.filename)
+            path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / filename 
             post_form.image.data.save(path)
-
+        elif post_form.image.data and not allowed_file(post_form.image.data.filename):
+            flash("Invalid file type!", category="warning")
+            return redirect(url_for("stream", username=username))
         insert_post = f"""
             INSERT INTO Posts (u_id, content, image, creation_time)
             VALUES ({user["id"]}, '{post_form.content.data}', '{post_form.image.data.filename}', CURRENT_TIMESTAMP);
@@ -138,7 +107,7 @@ def comments(username: str, post_id: int):
         """
     user = sqlite.query(get_user, one=True)
 
-    if comments_form.is_submitted():
+    if comments_form.validate_on_submit():
         insert_comment = f"""
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
             VALUES ({post_id}, {user["id"]}, '{comments_form.comment.data}', CURRENT_TIMESTAMP);
@@ -187,7 +156,7 @@ def friends(username: str):
         """
     user = sqlite.query(get_user, one=True)
 
-    if friends_form.is_submitted():
+    if friends_form.validate_on_submit():
         get_friend = f"""
             SELECT *
             FROM Users
@@ -233,14 +202,15 @@ def profile(username: str):
     Otherwise, it reads the username from the URL and displays the user's profile.
     """
     profile_form = ProfileForm()
-    get_user = f"""
-        SELECT *
-        FROM Users
-        WHERE username = '{username}';
-        """
-    user = sqlite.query(get_user, one=True)
-
-    if profile_form.is_submitted():
+    user = sqlite.query_userprofile(username)
+    if not user.get("id"):
+        flash("User does not exist!", category="warning")
+        return redirect(url_for("profile", username=username))
+    if profile_form.validate_on_submit():
+        # Check if the current user is the same as the user whose profile is being updated
+        if current_user.id != int(user.get("id", 0)):
+            flash("You cannot update another user's profile!", category="warning")
+            return redirect(url_for("profile", username=username))
         update_profile = f"""
             UPDATE Users
             SET education='{profile_form.education.data}', employment='{profile_form.employment.data}',

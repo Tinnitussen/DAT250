@@ -130,15 +130,29 @@ class SQLite3:
             "SELECT id FROM Users WHERE id = ?", (userid,)
             )
         userid = cursor.fetchone()
+        if userid:
+            userid = userid[0]
         cursor.close()
         return userid
     
-    def query_user(self, userid) -> dict | None:
+    def query_userprofile(self, username: str) -> dict | None:
         """Fetch user from the database."""
         cursor = self.connection.execute(
-            "SELECT * FROM Users WHERE id = ?", (userid,)
+            "SELECT id, first_name, last_name, education, employment, music, movie, nationality, birthday FROM Users WHERE username = ?", (username,)
             )
         user = cursor.fetchone()
+        if user:
+            user = {
+                'id': user[0],
+                'first_name': user[1],
+                'last_name': user[2],
+                'education': user[3],
+                'employment': user[4],
+                'music': user[5],
+                'movie': user[6],
+                'nationality': user[7],
+                'birthday': user[8],
+            }
         cursor.close()
         return user
     
@@ -150,7 +164,11 @@ class SQLite3:
         user = cursor.fetchone()
         cursor.close()
         if user:
-            user = dict(user)
+            user = {
+                'id': user[0],
+                'username': user[1],
+                'password': user[2],
+            }
         return user
 
     def _init_database(self, schema: PathLike | str) -> None:

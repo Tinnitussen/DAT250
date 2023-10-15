@@ -3,30 +3,72 @@
 from pathlib import Path
 from typing import cast
 
-from flask import Flask
+from flask import Flask, flash, redirect, url_for
 
 from app.config import Config
 from app.database import SQLite3
 
-# from flask_login import LoginManager
+from flask_login import LoginManager, UserMixin, login_user
 # from flask_bcrypt import Bcrypt
-# from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect
 
 # Instantiate and configure the app
 app = Flask(__name__)
+csfr = CSRFProtect(app)
 app.config.from_object(Config)
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+class User(UserMixin):
+    """
+    Provides the User class for the application.
+    This class is used by the flask_login package to manage user sessions.
+    """
+
+    def __init__(self, user_id):
+        self.id = user_id
+
+    @staticmethod
+    def get(user_id):
+        """Returns a User object based on the user id."""
+        userid = sqlite.query_userid(user_id)
+        if userid is None:
+            return None
+        return User(userid)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    """Redirects the user to the index page if they are not logged in."""
+    flash("You must be logged in to view this page!", category="warning")
+    return redirect(url_for("index"))
+
+
+# Helper function for logging in
+def check_username_password(username: str, password: str) -> bool:
+    """Login helper function"""
+    user = sqlite.query_username(username)
+    if not user:
+        return False
+    if username == user["username"] and password == user["password"]:
+        return login_user(User(user["id"]))
+    return False
+
+
+# Helper function for uploading files
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS'] 
+
 
 # Instantiate the sqlite database extension
 sqlite = SQLite3(app, schema="schema.sql")
 
-# TODO: Handle login management better, maybe with flask_login?
-# login = LoginManager(app)
-
 # TODO: The passwords are stored in plaintext, this is not secure at all. I should probably use bcrypt or something
 # bcrypt = Bcrypt(app)
-
-# TODO: The CSRF protection is not working, I should probably fix that
-# csrf = CSRFProtect(app)
 
 # Create the instance and upload folder if they do not exist
 with app.app_context():
