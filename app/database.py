@@ -55,7 +55,7 @@ class SQLite3:
 
         """
         if app is not None:
-            self.init_app(app, path=path, schema=schema)
+            self.init_app(app, path=path)
 
     def init_app(
         self,
@@ -124,16 +124,20 @@ class SQLite3:
         self.connection.commit()
         return response
 
-    def query_userid(self, userid) -> int | None:
+    def query_userid(self, userid) -> dict | None:
         """Fetch userid from the database."""
         cursor = self.connection.execute(
-            "SELECT id FROM Users WHERE id = ?", (userid,)
+            "SELECT id, username, first_name, last_name FROM Users WHERE id = ?", (userid,)
             )
-        userid = cursor.fetchone()
-        if userid:
-            userid = userid[0]
-        cursor.close()
-        return userid
+        user = cursor.fetchone()
+        if user:
+            user = {
+                'id': str(user[0]),
+                'username': user[1],
+                'first_name': user[2],
+                'last_name': user[3],
+            }
+        return user
     
     def query_userprofile(self, username: str) -> dict | None:
         """Fetch userprofile data from the database."""
@@ -153,13 +157,12 @@ class SQLite3:
                 'nationality': user[7],
                 'birthday': user[8],
             }
-        cursor.close()
         return user
     
     def query_username(self, username) -> dict | None:
         """Fetch user from the database."""
         cursor = self.connection.execute(
-            "SELECT id, username, password FROM Users WHERE username = ?", (username,)
+            "SELECT id, username, password, first_name, last_name FROM Users WHERE username = ?", (username,)
             )
         user = cursor.fetchone()
         if user:
@@ -167,9 +170,49 @@ class SQLite3:
                 'id': str(user[0]),
                 'username': user[1],
                 'password': user[2],
+                'first_name': user[3],
+                'last_name': user[4],
             }
-        cursor.close()
         return user
+
+    def query_posts(self, userid: str) -> list[dict] | None:
+        """Fetch posts from the database."""
+        cursor = self.connection.execute(
+         """
+         SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc
+         FROM Posts AS p JOIN Users AS u ON u.id = p.u_id
+         WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id = ?) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id = ?) OR p.u_id = ? 
+         ORDER BY p.creation_time DESC;
+        """, (userid, userid, userid)
+        )
+            
+        posts = cursor.fetchall()
+        return posts
+    
+    def query_post(self, post_id: str) -> sqlite3.Row | None:
+        """Fetch post from the database."""
+        cursor = self.connection.execute(
+        """
+        SELECT *
+        FROM Posts AS p JOIN Users AS u ON p.u_id = u.id
+        WHERE p.id = ?;
+        """, (post_id,)
+            )
+        post = cursor.fetchone()
+        return post
+    
+    def query_comments(self, post_id: str) -> sqlite3.Row | None:
+        """Fetch comments from the database."""
+        cursor = self.connection.execute(
+        """
+        SELECT DISTINCT *
+        FROM Comments AS c JOIN Users AS u ON c.u_id = u.id
+        WHERE c.p_id = ?
+        ORDER BY c.creation_time DESC;
+        """, (post_id,)
+        )
+        comments = cursor.fetchall()
+        return comments
 
     def check_user_exists(self, username) -> bool:
         cursor = self.connection.execute(
@@ -186,9 +229,26 @@ class SQLite3:
             "INSERT INTO Users (username, password, first_name, last_name) VALUES (?, ?, ?, ?)",
              (user.get('username'), user.get('password'), user.get('first_name'), user.get('last_name'))
             )
-        print(cursor.rowcount)
         self.connection.commit()
-        self.connection.close()
+
+    def insert_post(self, user_id, content, image ) -> None:
+        """Insert post into the database."""
+        self.connection.execute(
+            "INSERT INTO Posts (u_id, content, image, creation_time) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+            (user_id, content, image)
+            )
+        self.connection.commit()
+
+    def insert_comment(self, post_id, comment, user_id) -> None:
+        """Insert comment into the database."""
+        print(post_id, comment, user_id)
+        self.connection.execute(
+            """
+            INSERT INTO Comments (p_id, u_id, comment, creation_time)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP);
+            """, (post_id, user_id, comment)
+        )
+        self.connection.commit()
 
     def _init_database(self, schema: PathLike | str) -> None:
         """Initializes the database with the supplied schema if it does not exist yet."""

@@ -25,16 +25,18 @@ class User(UserMixin):
     This class is used by the flask_login package to manage user sessions.
     """
 
-    def __init__(self, user_id):
+    def __init__(self, user_id, username, first_name='', last_name=''):
         self.id = user_id
-
+        self.username = username
+        self.first_name = first_name
+        self.last_name = last_name
     @staticmethod
     def get(user_id):
         """Returns a User object based on the user id."""
-        userid = sqlite.query_userid(user_id)
-        if userid is None:
+        user = sqlite.query_userid(user_id)
+        if user is None:
             return None
-        return User(userid)
+        return User(user.get('id'), user.get('username'), user.get('first_name'), user.get('last_name'))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -54,7 +56,7 @@ def check_username_password(username: str, password: str) -> bool:
     if not user:
         return False
     if username == user["username"] and password == user["password"]:
-        return login_user(User(user["id"]))
+        return login_user(User(user["id"], user["username"], user["first_name"], user["last_name"]))
     return False
 
 

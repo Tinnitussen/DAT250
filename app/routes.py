@@ -65,74 +65,34 @@ def stream(username: str):
     Otherwise, it reads the username from the URL and displays all posts from the user and their friends.
     """
     post_form = PostForm()
-    user = sqlite.query_username(username)
-    print(user.get("id"))
-    print(current_user.get_id())
-    print(current_user.get_id() == user.get("id"))
-    if not user.get("id") or not current_user.get_id():
-        flash("User does not exist!", category="warning")
-        return redirect(url_for("stream", username=username))
     if post_form.validate_on_submit():
-        if current_user.get_id() != user.get("id"):
-            flash ("You cannot post as another user!", category="warning")
-            return redirect(url_for("stream", username=username))
-        if post_form.image.data and allowed_file(post_form.image.data.filename):
-            filename = secure_filename(post_form.image.data.filename)
-            path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / filename 
-            post_form.image.data.save(path)
-        elif post_form.image.data and not allowed_file(post_form.image.data.filename):
-            flash("Invalid file type!", category="warning")
-            return redirect(url_for("stream", username=username))
-        insert_post = f"""
-            INSERT INTO Posts (u_id, content, image, creation_time)
-            VALUES ({user["id"]}, '{post_form.content.data}', '{post_form.image.data.filename}', CURRENT_TIMESTAMP);
-            """
-        sqlite.query(insert_post)
+        filename = ""
+        if post_form.image.data:
+            if allowed_file(post_form.image.data.filename):
+                filename = secure_filename(post_form.image.data.filename)
+                path = Path(app.instance_path) / app.config["UPLOADS_FOLDER_PATH"] / filename 
+                post_form.image.data.save(path)
+            else:
+                flash("Invalid file type!", category="warning")
+                return redirect(url_for("stream", username=username))
+        sqlite.insert_post(current_user.get_id(), post_form.content.data, filename)
         return redirect(url_for("stream", username=username))
-
-    get_posts = f"""
-         SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc
-         FROM Posts AS p JOIN Users AS u ON u.id = p.u_id
-         WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id = {user["id"]}) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id = {user["id"]}) OR p.u_id = {user["id"]}
-         ORDER BY p.creation_time DESC;
-        """
-    posts = sqlite.query(get_posts)
+    stream_user_id = sqlite.query_username(username).get("id")
+    posts = sqlite.query_posts(stream_user_id)
     return render_template("stream.html.j2", title="Stream", username=username, form=post_form, posts=posts)
 
 @app.route("/comments/<string:username>/<int:post_id>", methods=["GET", "POST"])
 @login_required
 def comments(username: str, post_id: int):
     """Provides the comments page for the application.
-
     If a form was submitted, it reads the form data and inserts a new comment into the database.
-
     Otherwise, it reads the username and post id from the URL and displays all comments for the post.
     """
     comments_form = CommentsForm()
-    user = sqlite.query_username(username)
     if comments_form.validate_on_submit():
-        if not current_user.get_id() == user.get("id"):
-            flash("You cannot comment as another user!", category="warning")
-            return redirect(url_for("comments", username=username, post_id=post_id))
-        insert_comment = f"""
-            INSERT INTO Comments (p_id, u_id, comment, creation_time)
-            VALUES ({post_id}, {user["id"]}, '{comments_form.comment.data}', CURRENT_TIMESTAMP);
-            """
-        sqlite.query(insert_comment)
-
-    get_post = f"""
-        SELECT *
-        FROM Posts AS p JOIN Users AS u ON p.u_id = u.id
-        WHERE p.id = {post_id};
-        """
-    get_comments = f"""
-        SELECT DISTINCT *
-        FROM Comments AS c JOIN Users AS u ON c.u_id = u.id
-        WHERE c.p_id={post_id}
-        ORDER BY c.creation_time DESC;
-        """
-    post = sqlite.query(get_post, one=True)
-    comments = sqlite.query(get_comments)
+        sqlite.insert_comment(post_id, comments_form.comment.data, current_user.get_id())
+    post = sqlite.query_post(post_id)
+    comments = sqlite.query_comments(post_id)
     return render_template(
         "comments.html.j2", title="Comments", username=username, form=comments_form, post=post, comments=comments
     )
