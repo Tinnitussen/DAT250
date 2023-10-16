@@ -8,8 +8,7 @@ from pathlib import Path
 
 from flask import flash, redirect, render_template, send_from_directory, url_for, abort, session
 from flask_login import login_required, logout_user, current_user
-
-from app import app, sqlite, check_username_password, allowed_file
+from app import app, sqlite, bcrypt, check_username_password, allowed_file
 from app.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
 from werkzeug.utils import secure_filename
 
@@ -30,8 +29,6 @@ def index():
     register_form = index_form.register
     if login_form.validate_on_submit():
         # Try to log in the user
-        print(login_form.username.data)
-        print(login_form.password.data)
         if check_username_password(login_form.username.data, login_form.password.data):
             flash("You have been logged in!", category="success")
             return redirect(url_for("stream", username=login_form.username.data))
@@ -42,7 +39,7 @@ def index():
         # Check if user exists
         user = {
             'username': register_form.username.data,
-            'password': register_form.password.data,
+            'password': bcrypt.generate_password_hash(register_form.password.data),
             'first_name': register_form.first_name.data,
             'last_name': register_form.last_name.data,
         }

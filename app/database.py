@@ -55,7 +55,7 @@ class SQLite3:
 
         """
         if app is not None:
-            self.init_app(app, path=path)
+            self.init_app(app, path=path, schema=schema)
 
     def init_app(
         self,

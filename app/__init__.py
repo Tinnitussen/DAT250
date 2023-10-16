@@ -9,11 +9,12 @@ from app.config import Config
 from app.database import SQLite3
 
 from flask_login import LoginManager, UserMixin, login_user
-# from flask_bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 
 # Instantiate and configure the app
 app = Flask(__name__)
+bcrypt = Bcrypt(app)
 csfr = CSRFProtect(app)
 app.config.from_object(Config)
 login_manager = LoginManager()
@@ -24,7 +25,6 @@ class User(UserMixin):
     Provides the User class for the application.
     This class is used by the flask_login package to manage user sessions.
     """
-
     def __init__(self, user_id, username, first_name='', last_name=''):
         self.id = user_id
         self.username = username
@@ -55,7 +55,7 @@ def check_username_password(username: str, password: str) -> bool:
     user = sqlite.query_username(username)
     if not user:
         return False
-    if username == user["username"] and password == user["password"]:
+    if username == user["username"] and bcrypt.check_password_hash(user["password"], password):
         return login_user(User(user["id"], user["username"], user["first_name"], user["last_name"]))
     return False
 
@@ -68,9 +68,6 @@ def allowed_file(filename):
 
 # Instantiate the sqlite database extension
 sqlite = SQLite3(app, schema="schema.sql")
-
-# TODO: The passwords are stored in plaintext, this is not secure at all. I should probably use bcrypt or something
-# bcrypt = Bcrypt(app)
 
 # Create the instance and upload folder if they do not exist
 with app.app_context():
