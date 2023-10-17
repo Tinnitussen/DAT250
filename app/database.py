@@ -55,7 +55,7 @@ class SQLite3:
 
         """
         if app is not None:
-            self.init_app(app, path=path, schema=schema)
+            self.init_app(app, path=path)
 
     def init_app(
         self,
@@ -107,22 +107,18 @@ class SQLite3:
             conn.row_factory = sqlite3.Row
         return conn
 
-    def query(self, query: str, one: bool = False, *args) -> Any:
-        """Queries the database and returns the result.'
-
-        params:
-            query: The SQL query to execute.
-            one: Whether to return a single row or a list of rows.
-            args: Additional arguments to pass to the query.
-
-        returns: A single row, a list of rows or None.
-
-        """
-        cursor = self.connection.execute(query, args)
-        response = cursor.fetchone() if one else cursor.fetchall()
-        cursor.close()
-        self.connection.commit()
-        return response
+    def query_friends(self, user_id: str) -> sqlite3.Row | None:
+        cursor = self.connection.execute(
+            """
+            SELECT U.id, U.username
+            FROM Users U
+            JOIN Friends F ON U.id = F.f_id
+            WHERE F.u_id = ?
+            """, (user_id,)
+        )
+        friends = cursor.fetchall()
+        print(friends)
+        return friends
 
     def query_userid(self, userid) -> dict | None:
         """Fetch userid from the database."""
@@ -239,6 +235,17 @@ class SQLite3:
             )
         self.connection.commit()
 
+    def insert_friend(self, user_id, friend_id) -> None:
+        cursor = self.connection.execute(
+        """
+        INSERT INTO Friends (u_id, f_id)
+        VALUES (?, ?);
+        """, (user_id, friend_id)
+        )
+        # Check how many rows were inserted
+        print(cursor.rowcount)
+        self.connection.commit()
+
     def insert_comment(self, post_id, comment, user_id) -> None:
         """Insert comment into the database."""
         print(post_id, comment, user_id)
@@ -247,6 +254,36 @@ class SQLite3:
             INSERT INTO Comments (p_id, u_id, comment, creation_time)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP);
             """, (post_id, user_id, comment)
+        )
+        self.connection.commit()
+
+    def update_profile(self, user_id, data: dict) -> None:
+        self.connection.execute(
+            """
+            UPDATE Users
+            SET
+            education = CASE WHEN ? IS NOT NULL THEN ? ELSE education END,
+            employment = CASE WHEN ? IS NOT NULL THEN ? ELSE employment END,
+            music = CASE WHEN ? IS NOT NULL THEN ? ELSE music END,
+            movie = CASE WHEN ? IS NOT NULL THEN ? ELSE movie END,
+            nationality = CASE WHEN ? IS NOT NULL THEN ? ELSE movie END,
+            birthday = CASE WHEN ? IS NOT NULL THEN ? ELSE birthday END
+            WHERE id = ?;
+            """, (
+                data.get("education"),
+                data.get("education"),
+                data.get("employment"),
+                data.get("employment"),
+                data.get("music"),
+                data.get("music"),
+                data.get("movie"),
+                data.get("movie"),
+                data.get("nationality"),
+                data.get("nationality"),
+                data.get("birthday"),
+                data.get("birthday"),
+                user_id
+                )
         )
         self.connection.commit()
 

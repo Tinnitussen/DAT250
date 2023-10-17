@@ -106,53 +106,30 @@ def logout():
 @login_required
 def friends(username: str):
     """Provides the friends page for the application.
-
     If a form was submitted, it reads the form data and inserts a new friend into the database.
-
     Otherwise, it reads the username from the URL and displays all friends of the user.
     """
     friends_form = FriendsForm()
-    get_user = f"""
-        SELECT *
-        FROM Users
-        WHERE username = '{username}';
-        """
-    user = sqlite.query(get_user, one=True)
-
+    friends_user_id = sqlite.query_username(username).get("id")
     if friends_form.validate_on_submit():
-        get_friend = f"""
-            SELECT *
-            FROM Users
-            WHERE username = '{friends_form.username.data}';
-            """
-        friend = sqlite.query(get_friend, one=True)
-        get_friends = f"""
-            SELECT f_id
-            FROM Friends
-            WHERE u_id = {user["id"]};
-            """
-        friends = sqlite.query(get_friends)
-
+        if friends_user_id != current_user.get_id():
+            flash('You can only add friends to your own friendslist.', category="warning")
+            return redirect(url_for("friends", username=username))
+        friend = sqlite.query_username(friends_form.username.data)
+        friends = sqlite.query_friends(friends_user_id)
+        friendslist = [str(friend[0]) for friend in friends]
         if friend is None:
             flash("User does not exist!", category="warning")
-        elif friend["id"] == user["id"]:
+        elif friend["id"] == current_user.get_id():
             flash("You cannot be friends with yourself!", category="warning")
-        elif friend["id"] in [friend["f_id"] for friend in friends]:
+        elif friend["id"] in friendslist:
             flash("You are already friends with this user!", category="warning")
         else:
-            insert_friend = f"""
-                INSERT INTO Friends (u_id, f_id)
-                VALUES ({user["id"]}, {friend["id"]});
-                """
-            sqlite.query(insert_friend)
-            flash("Friend successfully added!", category="success")
-
-    get_friends = f"""
-        SELECT *
-        FROM Friends AS f JOIN Users as u ON f.f_id = u.id
-        WHERE f.u_id = {user["id"]} AND f.f_id != {user["id"]};
-        """
-    friends = sqlite.query(get_friends)
+            print(friend["id"], current_user.get_id())
+            sqlite.insert_friend(current_user.get_id(), friend["id"])
+            flash("Friend successfully added!", category="success") 
+    friends = sqlite.query_friends(friends_user_id)
+    
     return render_template("friends.html.j2", title="Friends", username=username, friends=friends, form=friends_form)
 
 @app.route("/profile/<string:username>", methods=["GET", "POST"])
@@ -171,19 +148,18 @@ def profile(username: str):
         return redirect(url_for("profile", username=username))
     if profile_form.validate_on_submit():
         # Check if the current user is the same as the user whose profile is being updated
-        print(current_user.get_id())
-        print(user.get("id"))
         if current_user.get_id() != user.get("id"):
             flash("You cannot update another user's profile!", category="warning")
             return redirect(url_for("profile", username=username))
-        update_profile = f"""
-            UPDATE Users
-            SET education='{profile_form.education.data}', employment='{profile_form.employment.data}',
-                music='{profile_form.music.data}', movie='{profile_form.movie.data}',
-                nationality='{profile_form.nationality.data}', birthday='{profile_form.birthday.data}'
-            WHERE username='{username}';
-            """
-        sqlite.query(update_profile)
+        data = {
+            "education": profile_form.education.data if profile_form.education.data else None,
+            "employment": profile_form.employment.data if profile_form.employment.data else None,
+            "music": profile_form.music.data if profile_form.music.data else None,
+            "movie": profile_form.movie.data if profile_form.movie.data else None,
+            "nationality": profile_form.nationality.data if profile_form.nationality.data else None,
+            "birthday": profile_form.birthday.data if profile_form.birthday.data else None,
+        }
+        sqlite.update_profile(current_user.get_id(), data) 
         return redirect(url_for("profile", username=username))
 
     return render_template("profile.html.j2", title="Profile", username=username, user=user, form=profile_form)
