@@ -17,7 +17,6 @@ Example:
 
 from datetime import datetime
 from typing import cast
-
 from flask_wtf import FlaskForm
 from wtforms import (
     BooleanField,
@@ -38,11 +37,6 @@ from wtforms.validators import (
 )
 # Defines all forms in the application, these will be instantiated by the template,
 # and the routes.py will read the values of the fields
-
-# TODO: Add validation, maybe use wtforms.validators??
-
-# TODO: There was some important security feature that wtforms provides, but I don't remember what; implement it
-
 
 class LoginForm(FlaskForm):
     """Provides the login form for the application."""

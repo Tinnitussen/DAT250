@@ -36,7 +36,7 @@ class User(UserMixin):
         user = sqlite.query_userid(user_id)
         if user is None:
             return None
-        return User(user.get('id'), user.get('username'), user.get('first_name'), user.get('last_name'))
+        return User(user['id'], user['username'], user['first_name'], user['last_name'])
 
 @login_manager.user_loader
 def load_user(user_id):

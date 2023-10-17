@@ -107,7 +107,7 @@ class SQLite3:
             conn.row_factory = sqlite3.Row
         return conn
 
-    def query_friends(self, user_id: str) -> sqlite3.Row | None:
+    def query_friends(self, user_id: str) -> list[sqlite3.Row] | None:
         cursor = self.connection.execute(
             """
             SELECT U.id, U.username
@@ -117,7 +117,6 @@ class SQLite3:
             """, (user_id,)
         )
         friends = cursor.fetchall()
-        print(friends)
         return friends
 
     def query_userid(self, userid) -> dict | None:
@@ -126,62 +125,35 @@ class SQLite3:
             "SELECT id, username, first_name, last_name FROM Users WHERE id = ?", (userid,)
             )
         user = cursor.fetchone()
-        if user:
-            user = {
-                'id': str(user[0]),
-                'username': user[1],
-                'first_name': user[2],
-                'last_name': user[3],
-            }
         return user
     
-    def query_userprofile(self, username: str) -> dict | None:
+    def query_userprofile(self, username: str) -> sqlite3.Row | None:
         """Fetch userprofile data from the database."""
         cursor = self.connection.execute(
             "SELECT id, first_name, last_name, education, employment, music, movie, nationality, birthday FROM Users WHERE username = ?", (username,)
             )
         user = cursor.fetchone()
-        if user:
-            user = {
-                'id': str(user[0]),
-                'first_name': user[1],
-                'last_name': user[2],
-                'education': user[3],
-                'employment': user[4],
-                'music': user[5],
-                'movie': user[6],
-                'nationality': user[7],
-                'birthday': user[8],
-            }
         return user
     
-    def query_username(self, username) -> dict | None:
+    def query_username(self, username) -> sqlite3.Row | None:
         """Fetch user from the database."""
         cursor = self.connection.execute(
             "SELECT id, username, password, first_name, last_name FROM Users WHERE username = ?", (username,)
             )
         user = cursor.fetchone()
-        if user:
-            user = {
-                'id': str(user[0]),
-                'username': user[1],
-                'password': user[2],
-                'first_name': user[3],
-                'last_name': user[4],
-            }
         return user
 
-    def query_posts(self, userid: str) -> list[dict] | None:
+    def query_posts(self, userid: str) -> list[sqlite3.Row] | None:
         """Fetch posts from the database."""
         cursor = self.connection.execute(
          """
-         SELECT p.*, u.*, (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc
+         SELECT p.*, u.id, u.username,
+         (SELECT COUNT(*) FROM Comments WHERE p_id = p.id) AS cc
          FROM Posts AS p JOIN Users AS u ON u.id = p.u_id
          WHERE p.u_id IN (SELECT u_id FROM Friends WHERE f_id = ?) OR p.u_id IN (SELECT f_id FROM Friends WHERE u_id = ?) OR p.u_id = ? 
          ORDER BY p.creation_time DESC;
         """, (userid, userid, userid)
         )
-            
         posts = cursor.fetchall()
         return posts
     
@@ -197,7 +169,7 @@ class SQLite3:
         post = cursor.fetchone()
         return post
     
-    def query_comments(self, post_id: str) -> sqlite3.Row | None:
+    def query_comments(self, post_id: str) -> list[sqlite3.Row] | None:
         """Fetch comments from the database."""
         cursor = self.connection.execute(
         """
