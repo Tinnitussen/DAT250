@@ -8,9 +8,12 @@ from flask import Flask, flash, redirect, url_for
 from app.config import Config
 from app.database import SQLite3
 
+# Flask Extensions
 from flask_login import LoginManager, UserMixin, login_user
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Instantiate and configure the app
 app = Flask(__name__)
@@ -19,6 +22,13 @@ csfr = CSRFProtect(app)
 app.config.from_object(Config)
 login_manager = LoginManager()
 login_manager.init_app(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["500 per day", "100 per hour"],
+    storage_uri="memory://"
+)
+
 
 class User(UserMixin):
     """

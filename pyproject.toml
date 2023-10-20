@@ -9,6 +9,7 @@ dependencies = [
     "flask-login>=0.6.2",
     "flask-bcrypt>=1.0.1",
     "werkzeug<=2.3.0",
+    "flask-limiter>=3.5.0",
 ]
 requires-python = ">=3.9"
 license = { text = "MIT" }
