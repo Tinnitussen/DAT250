@@ -5,7 +5,7 @@ It also contains the SQL queries used for communicating with the database.
 """
 
 from pathlib import Path
-from flask import flash, redirect, render_template, send_from_directory, url_for, abort, session
+from flask import flash, redirect, make_response, render_template, send_from_directory, url_for, session
 from flask_login import login_required, logout_user, current_user
 from app import app, sqlite, bcrypt, check_username_password, allowed_file
 from app.forms import CommentsForm, FriendsForm, IndexForm, PostForm, ProfileForm
@@ -49,7 +49,7 @@ def index():
         sqlite.insert_user(user)
         return redirect(url_for("index"))
 
-    return render_template("index.html", title="Welcome", form=index_form)
+    return make_response(render_template("index.html", title="Welcome", form=index_form))
 
 @app.route("/stream/<string:username>", methods=["GET", "POST"])
 @login_required
@@ -75,7 +75,7 @@ def stream(username: str):
         return redirect(url_for("stream", username=username))
     stream_user_id = sqlite.query_username(username)["id"]
     posts = sqlite.query_posts(stream_user_id)
-    return render_template("stream.html", title="Stream", username=username, form=post_form, posts=posts)
+    return make_response(render_template("stream.html", title="Stream", username=username, form=post_form, posts=posts))
 
 @app.route("/comments/<string:username>/<int:post_id>", methods=["GET", "POST"])
 @login_required
@@ -89,8 +89,9 @@ def comments(username: str, post_id: int):
         sqlite.insert_comment(post_id, comments_form.comment.data, current_user.get_id())
     post = sqlite.query_post(post_id)
     comments = sqlite.query_comments(post_id)
-    return render_template(
+    return make_response(render_template(
         "comments.html", title="Comments", username=username, form=comments_form, post=post, comments=comments
+    )
     )
 
 @app.route("/logout")
@@ -134,7 +135,8 @@ def friends(username: str):
         sqlite.insert_friend(current_user.get_id(), friend["id"])
         flash("Friend successfully added!", category="success") 
     friends = sqlite.query_friends(friends_user_id)
-    return render_template("friends.html", title="Friends", username=username, friends=friends, form=friends_form)
+    return make_response(render_template("friends.html", title="Friends", username=username, friends=friends, form=friends_form)
+    )
 
 @app.route("/profile/<string:username>", methods=["GET", "POST"])
 @login_required
@@ -164,7 +166,7 @@ def profile(username: str):
         sqlite.update_profile(current_user.get_id(), data) 
         return redirect(url_for("profile", username=username))
 
-    return render_template("profile.html", title="Profile", username=username, user=user, form=profile_form)
+    return make_response(render_template("profile.html", title="Profile", username=username, user=user, form=profile_form))
 
 @app.route("/uploads/<string:filename>")
 @login_required

@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import cast
 
-from flask import Flask, flash, redirect, url_for
+from flask import Flask, flash, redirect, url_for, make_response
 
 from app.config import Config
 from app.database import SQLite3
@@ -14,6 +14,7 @@ from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+
 
 # Instantiate and configure the app
 app = Flask(__name__)
@@ -87,6 +88,17 @@ with app.app_context():
     upload_path = instance_path / cast(str, app.config["UPLOADS_FOLDER_PATH"])
     if not upload_path.exists():
         upload_path.mkdir(parents=True, exist_ok=True)
+
+# Add security headers
+@app.after_request
+def add_headers(resp):
+    resp.headers['Content-Security-Policy'] = (
+    "default-src 'self';"
+    "script-src 'self' cdn.jsdelivr.net;"
+    "style-src 'self' cdn.jsdelivr.net maxcdn.bootstrapcdn.com;"
+    "font-src maxcdn.bootstrapcdn.com;"
+)
+    return resp
 
 # Import the routes after the app is configured
 from app import routes  # noqa: E402,F401

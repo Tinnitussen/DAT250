@@ -33,14 +33,12 @@ from wtforms.validators import (
     EqualTo,
     Length,
     Optional,
-
 )
 # Defines all forms in the application, these will be instantiated by the template,
 # and the routes.py will read the values of the fields
 
 class LoginForm(FlaskForm):
     """Provides the login form for the application."""
-
     username = StringField(label="Username", render_kw={"placeholder": "Username"}, validators=[DataRequired(), Length(1, 64)]) 
     password = PasswordField(label="Password", render_kw={"placeholder": "Password"}, validators=[DataRequired(), Length(8, 99)])
     remember_me = BooleanField(
@@ -52,8 +50,8 @@ class LoginForm(FlaskForm):
 class RegisterForm(FlaskForm):
     """Provides the registration form for the application."""
 
-    first_name = StringField(label="First Name", render_kw={"placeholder": "First Name"}, validators=[Optional(), Length(1, 64)])
-    last_name = StringField(label="Last Name", render_kw={"placeholder": "Last Name"}, validators=[Optional(), Length(1, 64)])
+    first_name = StringField(label="First Name", render_kw={"placeholder": "First Name"}, validators=[Optional(), Length(1, 64), DataRequired()])
+    last_name = StringField(label="Last Name", render_kw={"placeholder": "Last Name"}, validators=[Optional(), Length(1, 64), DataRequired()])
     username = StringField(label="Username", render_kw={"placeholder": "Username"}, validators=[Length(1, 64), DataRequired()])
     password = PasswordField(label="Password", render_kw={"placeholder": "Password"}, validators=[Length(8, 99), DataRequired(), EqualTo("confirm_password")])
     confirm_password = PasswordField(label="Confirm Password", render_kw={"placeholder": "Confirm Password"}, validators=[DataRequired()])

@@ -20,4 +20,5 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     SQLITE3_DATABASE_PATH = "sqlite3.db"  # Path relative to the Flask instance folder
     UPLOADS_FOLDER_PATH = "uploads"  # Path relative to the Flask instance folder
-    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'} # Allowed file extensions 
+    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'} # Allowed file extensions for uploads
+    SESSION_COOKIE_SAMESITE = 'Strict' # Prevents CSRF attacks
