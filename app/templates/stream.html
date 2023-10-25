@@ -24,7 +24,7 @@
           <div class="card mb-3">
             <div class="card-header">
               <div class="row align-items-center">
-                <a class="col-4" href={{ url_for('profile', username=post.username) }}><span class="fa fa-user me-1" aria-hidden="true"></span>{{ post.username }}</a>
+                <a class="col-4" href="{{ url_for('profile', username=post.username) }}"><span class="fa fa-user me-1" aria-hidden="true"></span>{{ post.username }}</a>
                 <span class="col-8 text-right">{{ post.creation_time }}</span>
               </div>
             </div>
@@ -32,7 +32,7 @@
               <p class="card-text">{{ post.content }}</p>
               {% if post.image %}<img src="{{ url_for('uploads', filename=post.image) }}"
      class="img-fluid mb-3">{% endif %}
-              <a href={{ url_for('comments', username=username, post_id=post.id) }}><span class="fa fa-comment me-1" aria-hidden="true"></span>Comments ({{ post.cc }})</a>
+              <a href="{{ url_for('comments', username=username, post_id=post.id) }}"><span class="fa fa-comment me-1" aria-hidden="true"></span>Comments ({{ post.cc }})</a>
             </div>
           </div>
         </div>
