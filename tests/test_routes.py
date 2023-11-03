@@ -29,9 +29,23 @@ def test_app() -> Iterator[Flask]:
 def client(test_app: Flask) -> FlaskClient:
     return test_app.test_client()
 
+
 @pytest.fixture()
-def logged_in_client(client: FlaskClient, userid: int = 0) -> FlaskClient:
-    # Valid users should include 0, 1, 2
+def logged_in_client(client: FlaskClient, userid:int = 0) -> FlaskClient:
+    with client:
+        client.post(
+            "/",
+            data = {
+                "login-username": users[userid]["username"],
+                "login-password": users[userid]["password"],
+                "login-submit": "Sign In",
+            }
+        )
+        assert current_user.is_authenticated is True
+    yield client
+
+@pytest.fixture()
+def logged_in_client2(client: FlaskClient, userid:int = 1) -> FlaskClient:
     with client:
         client.post(
             "/",
@@ -227,6 +241,13 @@ def test_get_profile_logged_in(logged_in_client: FlaskClient):
         response = logged_in_client.get("/profile/test")
         assert response.status_code == 200
 
+def test_get_logout_logged_in(client: FlaskClient):
+    response = client.get("/logout")
+    assert response.status_code == 302
+    # Assert that the user is redirected to the login page
+    assert response.location == "/" or response.location == "/index"
+
+
 # Test various post requests to the /stream
 def test_post_stream_valid(logged_in_client: FlaskClient):
     with app.app_context():
@@ -271,7 +292,6 @@ def test_post_stream_too_long_content(logged_in_client: FlaskClient):
             "image": (BytesIO(image_data), 'test_upload2.png'),
             "submit": "Post",
         }
-        print(len(data['content']))
         response = logged_in_client.post("/stream/test", data=data, content_type='multipart/form-data')
         assert response.status_code == 200
         # Assert that the image was uploaded 
@@ -344,6 +364,105 @@ def test_post_comments_too_long_content(logged_in_client: FlaskClient):
         assert response.status_code == 200
         # Assert that the comment is not in the database
         assert sqlite.check_comment_exists(2) is False
+
+def test_post_comments_no_content(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "submit": "Comment",
+        }
+        response = logged_in_client.post("/comments/test/1", data=data)
+        assert response.status_code == 200
+        # Assert that the comment is not in the database
+        assert sqlite.check_comment_exists(2) is False
+
+def test_post_comments_no_submit(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "comment": "test",
+        }
+        response = logged_in_client.post("/comments/test/1", data=data)
+        assert response.status_code == 200
+        # Assert that the comment is not in the database
+        assert sqlite.check_comment_exists(2) is False
+
+######### PROFILE UPDATES #########
+def test_post_profile_updates(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "education": "test",
+            "employment": "test",
+            "submit": "Update Profile",
+        }
+        response = logged_in_client.post("/profile/test", data=data)
+        assert response.status_code == 201
+        profile_data = sqlite.query_userprofile("test") 
+        assert profile_data["education"] == "test"
+        assert profile_data["employment"] == "test"
+
+def test_post_profile_updates_other_user(logged_in_client2: FlaskClient):
+    with app.app_context():
+        data = {
+            "education": "test2",
+            "employment": "test2",
+            "submit": "Update Profile",
+        }
+        response = logged_in_client2.post("/profile/test", data=data)
+        assert response.status_code == 401
+        profile_data = sqlite.query_userprofile("test")
+        assert profile_data["education"] == "test"
+        assert profile_data["employment"] == "test"
+
+def test_post_profile_updates_user_not_found(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "education": "test",
+            "employment": "test",
+            "submit": "Update Profile",
+        }
+        response = logged_in_client.post("/profile/invalid", data=data)
+        assert response.status_code == 302
+
+###################### FRIENDS ######################
+def test_post_friends_valid(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "username": "test1",
+            "submit": "Add Friend",
+        }
+        response = logged_in_client.post("/friends/test", data=data)
+        assert response.status_code == 201
+        # Assert that the friend is in the database
+        assert sqlite.check_friend_connection(1, 2) is True
+
+def duplicate_friend_request(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "username": "test1",
+            "submit": "Add Friend",
+        }
+        response = logged_in_client.post("/friends/test", data=data)
+        assert response.status_code == 400
+
+def friend_request_self(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "username": "test",
+            "submit": "Add Friend",
+        }
+        response = logged_in_client.post("/friends/test", data=data)
+        assert response.status_code == 400
+
+def test_post_friends_invalid_username(logged_in_client: FlaskClient):
+    with app.app_context():
+        data = {
+            "username": "invalid",
+            "submit": "Add Friend",
+        }
+        response = logged_in_client.post("/friends/test", data=data)
+        assert response.status_code == 404
+        # Assert that the friend is not in the database
+        assert sqlite.check_friend_connection(1, 3) is False
+
 
 ############## ALL ROUTES WHILE NOT LOGGED IN ##############
 def test_get_index(client: FlaskClient):

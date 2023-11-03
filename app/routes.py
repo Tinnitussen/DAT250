@@ -155,6 +155,7 @@ def friends(username: str):
         flash("Friend successfully added!", category="success") 
         # Refresh the friends list
         friends = sqlite.query_friends(friends_user_id)
+        return make_response(render_template("friends.html", title="Friends", username=username, friends=friends, form=friends_form), 201)
     return make_response(render_template("friends.html", title="Friends", username=username, friends=friends, form=friends_form)
     )
 
@@ -170,9 +171,6 @@ def profile(username: str):
         return redirect(url_for("index"))
     profile_form = ProfileForm()
     user = sqlite.query_userprofile(username)
-    if not user["id"] or not current_user.get_id():
-        flash("User does not exist!", category="warning")
-        return make_response(render_template("profile.html", title="Profile", username=username, user=user, form=profile_form), 404)
     if profile_form.validate_on_submit():
         # Check if the current user is the same as the user whose profile is being updated
         if current_user.get_id() != str(user["id"]):
@@ -189,6 +187,7 @@ def profile(username: str):
         sqlite.update_profile(current_user.get_id(), data) 
         # Update the profile
         user = sqlite.query_userprofile(username)
+        return make_response(render_template("profile.html", title="Profile", username=username, user=user, form=profile_form), 201)
     return make_response(render_template("profile.html", title="Profile", username=username, user=user, form=profile_form))
 
 @app.route("/uploads/<string:filename>")

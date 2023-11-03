@@ -209,6 +209,21 @@ class SQLite3:
             return True
         return False
     
+    def check_friend_connection(self, user_id, friend_id) -> bool:
+        cursor = self.connection.execute(
+            "SELECT u_id FROM Friends WHERE u_id = ? AND f_id = ?", (user_id, friend_id)
+            )
+        friend = cursor.fetchone()
+        if friend:
+            return True
+        cursor = self.connection.execute(
+            "SELECT u_id FROM Friends WHERE u_id = ? AND f_id = ?", (friend_id, user_id)
+            )
+        friend = cursor.fetchone()
+        if friend:
+            return True
+        return False
+    
     def insert_user(self, user:dict) -> None:
         """Insert user into the database."""
         cursor = self.connection.execute(
