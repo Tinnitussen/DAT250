@@ -50,17 +50,16 @@ class LoginForm(FlaskForm):
 class RegisterForm(FlaskForm):
     """Provides the registration form for the application."""
 
-    first_name = StringField(label="First Name", render_kw={"placeholder": "First Name"}, validators=[Optional(), Length(1, 64), DataRequired()])
-    last_name = StringField(label="Last Name", render_kw={"placeholder": "Last Name"}, validators=[Optional(), Length(1, 64), DataRequired()])
+    first_name = StringField(label="First Name", render_kw={"placeholder": "First Name"}, validators=[Length(1, 64), DataRequired()])
+    last_name = StringField(label="Last Name", render_kw={"placeholder": "Last Name"}, validators=[Length(1, 64), DataRequired()])
     username = StringField(label="Username", render_kw={"placeholder": "Username"}, validators=[Length(1, 64), DataRequired()])
     password = PasswordField(label="Password", render_kw={"placeholder": "Password"}, validators=[Length(8, 99), DataRequired(), EqualTo("confirm_password")])
     confirm_password = PasswordField(label="Confirm Password", render_kw={"placeholder": "Confirm Password"}, validators=[DataRequired()])
-    submit = SubmitField(label="Sign Up", validators=[DataRequired()])
+    submit = SubmitField(label="Sign Up")
 
 
 class IndexForm(FlaskForm):
     """Provides the composite form for the index page."""
-
     login = cast(LoginForm, FormField(LoginForm))
     register = cast(RegisterForm, FormField(RegisterForm))
 

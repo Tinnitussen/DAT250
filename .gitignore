@@ -184,3 +184,5 @@ social-insecurity.code-workspace
 # Random
 .dccache
 .env.local
+virus.exe
+/tests/*.png

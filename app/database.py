@@ -55,7 +55,7 @@ class SQLite3:
 
         """
         if app is not None:
-            self.init_app(app, path=path)
+            self.init_app(app, path=path, schema=schema)
 
     def init_app(
         self,
@@ -191,6 +191,24 @@ class SQLite3:
             return True
         return False
     
+    def check_post_exists(self, post_id) -> bool:
+        cursor = self.connection.execute(
+            "SELECT id FROM Posts WHERE id = ?", (post_id,)
+            )
+        post = cursor.fetchone()
+        if post:
+            return True
+        return False
+    
+    def check_comment_exists(self, comment_id) -> bool:
+        cursor = self.connection.execute(
+            "SELECT id FROM Comments WHERE id = ?", (comment_id,)
+            )
+        comment = cursor.fetchone()
+        if comment:
+            return True
+        return False
+    
     def insert_user(self, user:dict) -> None:
         """Insert user into the database."""
         cursor = self.connection.execute(
@@ -230,33 +248,26 @@ class SQLite3:
         self.connection.commit()
 
     def update_profile(self, user_id, data: dict) -> None:
-        self.connection.execute(
-            """
+        query = """
             UPDATE Users
             SET
-            education = CASE WHEN ? IS NOT NULL THEN ? ELSE education END,
-            employment = CASE WHEN ? IS NOT NULL THEN ? ELSE employment END,
-            music = CASE WHEN ? IS NOT NULL THEN ? ELSE music END,
-            movie = CASE WHEN ? IS NOT NULL THEN ? ELSE movie END,
-            nationality = CASE WHEN ? IS NOT NULL THEN ? ELSE movie END,
-            birthday = CASE WHEN ? IS NOT NULL THEN ? ELSE birthday END
+            education = COALESCE(?, education),
+            employment = COALESCE(?, employment),
+            music = COALESCE(?, music),
+            movie = COALESCE(?, movie),
+            nationality = COALESCE(?, nationality),
+            birthday = COALESCE(?, birthday)
             WHERE id = ?;
-            """, (
-                data.get("education"),
-                data.get("education"),
-                data.get("employment"),
-                data.get("employment"),
-                data.get("music"),
-                data.get("music"),
-                data.get("movie"),
-                data.get("movie"),
-                data.get("nationality"),
-                data.get("nationality"),
-                data.get("birthday"),
-                data.get("birthday"),
-                user_id
-                )
-        )
+        """
+        self.connection.execute(query, (
+            data.get("education"),
+            data.get("employment"),
+            data.get("music"),
+            data.get("movie"),
+            data.get("nationality"),
+            data.get("birthday"),
+            user_id
+        ))
         self.connection.commit()
 
     def _init_database(self, schema: PathLike | str) -> None:

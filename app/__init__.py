@@ -94,10 +94,14 @@ with app.app_context():
 def add_headers(resp):
     resp.headers['Content-Security-Policy'] = (
     "default-src 'self';"
-    "script-src 'self' cdn.jsdelivr.net;"
-    "style-src 'self' cdn.jsdelivr.net maxcdn.bootstrapcdn.com;"
+    "script-src 'self' cdn.jsdelivr.net 'unsafe-inline';"
+    "style-src 'self' cdn.jsdelivr.net maxcdn.bootstrapcdn.com 'unsafe-inline';"
     "font-src maxcdn.bootstrapcdn.com;"
-)
+    )
+    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    # Remove the server header
+    resp.headers['Server'] = ''
     return resp
 
 # Import the routes after the app is configured

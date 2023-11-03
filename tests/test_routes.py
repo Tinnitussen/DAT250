@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
-from flask_login import current_user, login_user
+from flask_login import current_user
 import pytest
 from io import BytesIO
 
-from app import app, sqlite, User
+from app import app, sqlite
 
 if TYPE_CHECKING:
     from flask import Flask
@@ -199,30 +199,30 @@ def test_login(client: FlaskClient, user: dict):
             assert not current_user.is_authenticated, f"Login test failed for user: {user['description']}."
 
 ######################## TEST ROUTES GET REQUEST WHILE LOGGED IN ########################
-def test_request_index_logged_in(logged_in_client: FlaskClient):
+def test_get_index_logged_in(logged_in_client: FlaskClient):
     with logged_in_client:
         response = logged_in_client.get("/")
         assert response.status_code == 302
         assert response.location == "/stream/test"
 
-def test_request_index2_logged_in(logged_in_client: FlaskClient):
+def test_get_index2_logged_in(logged_in_client: FlaskClient):
     with logged_in_client:
         response = logged_in_client.get("/index")
         assert response.status_code == 302
         # Check that the user is redirected to the stream page
         assert response.location == "/stream/test"
 
-def test_request_stream_logged_in(logged_in_client: FlaskClient):
+def test_get_stream_logged_in(logged_in_client: FlaskClient):
     with logged_in_client:
         response = logged_in_client.get("/stream/test")
         assert response.status_code == 200
 
-def test_request_friends_logged_in(logged_in_client: FlaskClient):
+def test_get_friends_logged_in(logged_in_client: FlaskClient):
     with logged_in_client:
         response = logged_in_client.get("/friends/test")
         assert response.status_code == 200
 
-def test_request_profile_logged_in(logged_in_client: FlaskClient):
+def test_get_profile_logged_in(logged_in_client: FlaskClient):
     with logged_in_client:
         response = logged_in_client.get("/profile/test")
         assert response.status_code == 200
@@ -346,45 +346,45 @@ def test_post_comments_too_long_content(logged_in_client: FlaskClient):
         assert sqlite.check_comment_exists(2) is False
 
 ############## ALL ROUTES WHILE NOT LOGGED IN ##############
-def test_request_index(client: FlaskClient):
+def test_get_index(client: FlaskClient):
     response = client.get("/")
     assert response.status_code == 200
 
-def test_request_index2(client: FlaskClient):
+def test_get_index2(client: FlaskClient):
     response = client.get("/index")
     assert response.status_code == 200
 
-def test_request_stream(client: FlaskClient):
+def test_get_stream(client: FlaskClient):
     response = client.get("/stream/random")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
-def test_request_comments(client: FlaskClient):
+def test_get_comments(client: FlaskClient):
     response = client.get("/comments/random/1")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
-def test_request_friends(client: FlaskClient):
+def test_get_friends(client: FlaskClient):
     response = client.get("/friends/random")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
-def test_request_profile(client: FlaskClient):
+def test_get_profile(client: FlaskClient):
     response = client.get("/profile/random")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
-def test_request_upload(client: FlaskClient):
+def test_get_upload(client: FlaskClient):
     response = client.get("/uploads/random")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
-def test_request_logout(client: FlaskClient):
+def test_get_logout(client: FlaskClient):
     response = client.get("/logout")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
