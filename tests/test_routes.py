@@ -480,25 +480,25 @@ def test_get_stream(client: FlaskClient):
     assert response.location == "/" or response.location == "/index"
 
 def test_get_comments(client: FlaskClient):
-    response = client.get("/comments/random/1")
+    response = client.get("/comments/test/1")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
 def test_get_friends(client: FlaskClient):
-    response = client.get("/friends/random")
+    response = client.get("/friends/test")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
 def test_get_profile(client: FlaskClient):
-    response = client.get("/profile/random")
+    response = client.get("/profile/test")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
 
 def test_get_upload(client: FlaskClient):
-    response = client.get("/uploads/random")
+    response = client.get("/uploads/test")
     assert response.status_code == 302
     # Assert that the user is redirected to the login page
     assert response.location == "/" or response.location == "/index"
